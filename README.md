@@ -1,31 +1,31 @@
-# DEG Project Challenges
+# Pulse-Check API ("Watchdog" Sentinel)
 
-This repository contains the DEG training project challenges across multiple tracks:
+A backend service designed for CritMon Servers Inc. to monitor remote devices. If a device fails to send a heartbeat before its timer expires, the system triggers a critical alert.
 
-- Backend
-- Data Engineering
-- Fullstack
-- QA
-- DevOps
+## 1. Architecture Diagram
+The following sequence diagram shows the flow of a device registering, sending heartbeats, and the system firing an alert if the timer expires.
 
-Each challenge is self-contained inside its folder and includes its own README with task details.
+```mermaid
+sequenceDiagram
+    participant Device
+    participant API
+    participant Timer
+    participant Log
 
-## Applicant Guide
+    Device->>API: POST /monitors (id, timeout)
+    API->>Timer: Start Timer (e.g., 60s)
+    API-->>Device: 201 Created
 
-If you are applying, start by choosing the challenge folder that matches your track or assigned task. Then open the README inside that folder.
+    loop Heartbeat
+        Device->>API: POST /monitors/{id}/heartbeat
+        API->>Timer: Reset Timer
+        API-->>Device: 200 OK
+    end
 
-The challenge-specific README files include:
+    Note over Timer: Timer reaches 0
+    Timer->>Log: Fire Alert (Device is down!)
+    Timer->>API: Update status to 'down'
 
-- Challenge description and requirements
-- Expected deliverables
-- Submission guidelines and deadlines (where applicable)
-- Any setup instructions or constraints
-
-## Where To Start
-
-1. Open the relevant track folder (for example, `backend/`, `data-engineering/`, or `fullstack/`).
-2. Enter the challenge project folder.
-3. Read that project's `README.md` completely before starting work.
-4. Follow the listed deliverables and submission instructions exactly.
-
-If instructions differ between this root README and a challenge README, treat the challenge README as the source of truth.
+    Device->>API: POST /monitors/{id}/pause
+    API->>Timer: Cancel Timer
+    API-->>Device: 200 OK (No alerts will fire)
